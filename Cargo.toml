@@ -1,0 +1,28 @@
+[package]
+name = "distant-horizons"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["gui"]
+gui = ["dep:bevy"]
+
+[dependencies]
+duckdb = { version = "1.2.0", default-features = false }
+tracing = { version = "0.1", default-features = false }
+tracing-subscriber = { version = "0.3.19", optional = true }
+
+[dependencies.bevy]
+version = "0.15.2"
+optional = true
+default-features = false
+features = [
+    "bevy_asset",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_winit",
+    "bevy_ui",
+    "asset_processor",
+    "dynamic_linking",
+    "wayland",
+]
