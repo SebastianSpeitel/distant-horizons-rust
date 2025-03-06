@@ -4,7 +4,6 @@ mod detail_level;
 pub mod gui;
 mod java;
 mod light;
-mod merge;
 mod repo;
 pub mod section;
 
