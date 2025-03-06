@@ -1,4 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "bevy", derive(bevy::prelude::Component))]
 #[repr(u8)]
 pub enum DetailLevel {
     Block = 0,

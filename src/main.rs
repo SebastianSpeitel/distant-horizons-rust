@@ -3,15 +3,14 @@ use duckdb::Connection;
 use distant_horizons::{DetailLevel, Section};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let db_path = std::env::var("DH_PATH").unwrap_or_else(|_| "DistantHorizons.sqlite".to_string());
+
     #[cfg(feature = "gui")]
     if std::env::args().nth(1).as_deref() == Some("GUI") {
         distant_horizons::gui::main();
         return Ok(());
     }
 
-    let db_path = std::env::args()
-        .nth(1)
-        .ok_or("Missing argument <db_path>")?;
     dbg!(&db_path);
 
     let conn = Connection::open_in_memory()?;

@@ -6,6 +6,8 @@ use duckdb::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[cfg_attr(feature = "bevy", derive(bevy::prelude::Component))]
+#[repr(u8)]
 pub enum Compression {
     #[default]
     Uncompressed = 0,
@@ -241,15 +243,13 @@ impl<'a, T, C> Compressed<'a, T, C> {
     }
 
     #[inline]
-    pub fn as_ref(&self) -> Option<&T> {
+    pub const fn as_ref(&self) -> Option<&T> {
         match self {
             Self::Decompressed { val, .. } | Self::Cached { val, .. } => Some(val),
             Self::Compressed { .. } => None,
         }
     }
 }
-
-fn t(c: Compressed<Box<crate::section::columns::Columns<bool>>>) {}
 
 impl<T, C> ToSql for Compressed<'_, T, C> {
     #[inline]
@@ -329,7 +329,7 @@ impl Decompressor for Compression {
     fn decompress(&mut self, raw: impl AsRef<[u8]>) -> Result<Box<[u8]>, Self::Error> {
         match *self {
             Self::Uncompressed => Ok(raw.as_ref().into()),
-            Self::Lzma2 => decompress_lzma(raw.as_ref()).map_err(Into::into),
+            Self::Lzma2 => decompress_lzma(raw.as_ref()),
             _ => todo!(),
         }
     }

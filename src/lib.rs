@@ -5,6 +5,7 @@ pub mod gui;
 mod java;
 mod light;
 mod merge;
+mod repo;
 pub mod section;
 
 pub use detail_level::DetailLevel;

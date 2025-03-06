@@ -41,80 +41,234 @@ impl Block {
 
     #[inline]
     #[must_use]
-    pub fn block(&self) -> &'static str {
-        self.block
+    pub fn is_transparent(&self) -> bool {
+        match self.block {
+            "AIR" => true,
+            "minecraft:torch" => true,
+            "minecraft:wall_torch" => true,
+            "minecraft:rail" => true,
+            "minecraft:powered_rail" => true,
+            "minecraft:lever" => true,
+            "minecraft:ladder" => true,
+            "minecraft:glass" => true,
+            "minecraft:repeater" => true,
+            "minecraft:iron_bars" => true,
+            "minecraft:redstone_wire" => true,
+            b if b.starts_with("minecraft:potted_") => true,
+            _ => false,
+        }
     }
 
     #[inline]
     #[must_use]
-    pub fn map_color(&self) -> Option<(u8, u8, u8)> {
-        Some(match self.block {
-            b if b.contains("grass_block") => (127, 178, 56),
-            "minecraft:cherry_leaves" => (242, 127, 165),
-            b if b.contains("grass")
-                || b.contains("leave")
-                || b.contains("leaf")
-                || b.contains("vine")
-                || b.contains("cactus")
-                || b.contains("fern")
-                || b.contains("lily_pad")
-                || b.contains("sugar_cane")
-                || b.contains("flower")
-                || b.contains("seed")
-                || b.contains("wheat")
-                || b.contains("carrot")
-                || b.contains("potato")
-                || b.contains("sweet_berry_bush")
-                || b.contains("petal")
-                || b.contains("sapling") =>
-            {
-                (0, 124, 0)
-            }
-            b if (b.contains("dark") && b.contains("oak")) || b.contains("soul") => (102, 76, 51),
-            b if (b.contains("sand") && !b.contains("red")) || b.contains("birch") => {
-                (247, 233, 163)
-            }
-            b if b.contains("wool") => (199, 199, 199),
-            b if b.contains("tnt") || b.contains("fire") || b.contains("lava") => (255, 0, 0),
-            b if b.contains("ice") => (160, 160, 255),
-            b if b.contains("iron") => (167, 167, 167),
+    pub const fn block(&self) -> &'static str {
+        self.block
+    }
 
-            b if b.contains("snow") => (255, 255, 255),
-            b if b.contains("clay") => (164, 168, 184),
-            b if b.contains("dirt")
-                || b.contains("farmland")
-                || b.contains("granite")
-                || b.contains("jungle") =>
-            {
-                (151, 109, 77)
+    /// <https://minecraft.wiki/w/Map_item_format#Color_table>
+    #[inline]
+    #[must_use]
+    pub fn map_color(&self) -> Option<(u8, u8, u8)> {
+        type Col = (u8, u8, u8);
+        const COLOR_RED: Col = (153, 51, 51);
+        const DIRT: Col = (151, 109, 77);
+        const PLANT: Col = (0, 124, 0);
+        const WOOD: Col = (143, 119, 72);
+        const COLOR_ORANGE: Col = (216, 127, 51);
+        const COLOR_GREEN: Col = (102, 127, 51);
+        const COLOR_BROWN: Col = (102, 76, 51);
+        const COLOR_YELLOW: Col = (229, 229, 51);
+        const COLOR_BLACK: Col = (25, 25, 25);
+        const COLOR_LIGHT_GREEN: Col = (127, 204, 25);
+        const COLOR_PINK: Col = (242, 127, 165);
+        const COLOR_PURPLE: Col = (127, 63, 178);
+        const TERRACOTTA_ORANGE: Col = (159, 82, 36);
+        const TERRACOTTA_CYAN: Col = (87, 92, 92);
+        const TERRACOTTA_BROWN: Col = (76, 50, 35);
+        const TERRACOTTA_YELLOW: Col = (186, 133, 36);
+        const TERRACOTTA_RED: Col = (142, 60, 46);
+        const TERRACOTTA_LIGHT_GRAY: Col = (135, 107, 98);
+        const TERRACOTTA_WHITE: Col = (209, 177, 161);
+        const TERRACOTTA_BLUE: Col = (76, 62, 92);
+        const NETHER: Col = (112, 2, 0);
+        const GOLD: Col = (250, 238, 77);
+        const METAL: Col = (167, 167, 167);
+        const WOOL: Col = (199, 199, 199);
+        const GLOW_LICHEN: Col = (127, 167, 150);
+        const STONE: Col = (112, 112, 112);
+        const WATER: Col = (64, 64, 255);
+        const GRASS: Col = (127, 178, 56);
+        const SAND: Col = (247, 233, 163);
+        const SNOW: Col = (255, 255, 255);
+        const QUARTZ: Col = (255, 252, 245);
+        const ICE: Col = (160, 160, 255);
+        const PODZOL: Col = (129, 86, 49);
+        const FIRE: Col = (255, 0, 0);
+        const CLAY: Col = (164, 168, 184);
+
+        Some(match self.block {
+            "minecraft:water" => WATER,
+            "minecraft:grass_block" => GRASS,
+            "minecraft:sand" => SAND,
+            "minecraft:stone" => STONE,
+            "minecraft:dirt" => DIRT,
+            "minecraft:gravel" => STONE,
+            "minecraft:red_mushroom_block" => COLOR_RED,
+            "minecraft:brown_mushroom_block" => DIRT,
+            "minecraft:rose_bush" => PLANT,
+            "minecraft:dead_bush" => WOOD,
+            "minecraft:lilac" => PLANT,
+            "minecraft:oxeye_daisy" => PLANT,
+            "minecraft:allium" => PLANT,
+            "minecraft:lily_of_the_valley" => PLANT,
+            "minecraft:pink_tulip" => PLANT,
+            "minecraft:white_tulip" => PLANT,
+            "minecraft:red_tulip" => PLANT,
+            "minecraft:peony" => PLANT,
+            "minecraft:azalea" => PLANT,
+            "minecraft:beetroots" => PLANT,
+            "minecraft:blue_orchid" => PLANT,
+            "minecraft:orange_tulip" => PLANT,
+            "minecraft:pumpkin_stem" => PLANT,
+            "minecraft:attached_pumpkin_stem" => PLANT,
+            "minecraft:melon_stem" => PLANT,
+            "minecraft:attached_melon_stem" => PLANT,
+            "minecraft:lily_pad" => PLANT,
+            "minecraft:vine" => PLANT,
+            "minecraft:azure_bluet" => PLANT,
+            "minecraft:short_grass" => PLANT,
+            "minecraft:tall_grass" => PLANT,
+            "minecraft:dandelion" => PLANT,
+            "minecraft:cornflower" => PLANT,
+            "minecraft:poppy" => PLANT,
+            "minecraft:sweet_berry_bush" => PLANT,
+            "minecraft:sugar_cane" => PLANT,
+            "minecraft:fern" => PLANT,
+            "minecraft:large_fern" => PLANT,
+            "minecraft:wheat" => PLANT,
+            "minecraft:carrots" => PLANT,
+            "minecraft:potatoes" => PLANT,
+            "minecraft:cactus" => PLANT,
+            "minecraft:pink_petals" => PLANT,
+            "minecraft:sunflower" => PLANT,
+            "minecraft:small_dripleaf" => PLANT,
+            "minecraft:big_dripleaf" => PLANT,
+            "minecraft:flowering_azalea" => PLANT,
+            "minecraft:pumpkin" => COLOR_ORANGE,
+            "minecraft:carved_pumpkin" => COLOR_ORANGE,
+            "minecraft:jack_o_lantern" => COLOR_ORANGE,
+            "minecraft:melon" => COLOR_LIGHT_GREEN,
+            "minecraft:moss_carpet" => COLOR_GREEN,
+            "minecraft:moss_block" => COLOR_GREEN,
+            "minecraft:mud" => TERRACOTTA_CYAN,
+            "minecraft:terracotta" => COLOR_ORANGE,
+            "minecraft:orange_terracotta" => TERRACOTTA_ORANGE,
+            "minecraft:brown_terracotta" => TERRACOTTA_BROWN,
+            "minecraft:yellow_terracotta" => TERRACOTTA_YELLOW,
+            "minecraft:red_terracotta" => TERRACOTTA_RED,
+            "minecraft:light_gray_terracotta" => TERRACOTTA_LIGHT_GRAY,
+            "minecraft:white_terracotta" => TERRACOTTA_WHITE,
+            "minecraft:blue_terracotta" => TERRACOTTA_BLUE,
+            "minecraft:brown_mushroom" => COLOR_BROWN,
+            "minecraft:red_mushroom" => COLOR_RED,
+            "minecraft:netherrack" => NETHER,
+            "minecraft:magma_block" => NETHER,
+            "minecraft:nether_brick_slab" => NETHER,
+            "minecraft:bee_nest" => COLOR_YELLOW,
+            "minecraft:obsidian" => COLOR_BLACK,
+            "minecraft:crying_obsidian" => COLOR_BLACK,
+            "minecraft:hay_block" => COLOR_YELLOW,
+            "minecraft:crafting_table" => WOOD,
+            "minecraft:bell" => GOLD,
+            "minecraft:gold_block" => GOLD,
+            "minecraft:composter" => WOOD,
+            "minecraft:lantern" => METAL,
+            "minecraft:mud_bricks" => TERRACOTTA_LIGHT_GRAY,
+            "minecraft:mud_brick_slab" => TERRACOTTA_LIGHT_GRAY,
+            "minecraft:nether_wart" => COLOR_RED,
+            "minecraft:cobweb" => WOOL,
+            "minecraft:glow_lichen" => GLOW_LICHEN,
+            "minecraft:observer" => STONE,
+            "minecraft:kelp" => WATER,
+            "minecraft:seagrass" => WATER,
+            "minecraft:tall_seagrass" => WATER,
+            "minecraft:bubble_column" => WATER,
+            "minecraft:snow" => SNOW,
+            "minecraft:snow_block" => SNOW,
+            "minecraft:powder_snow" => SNOW,
+            "minecraft:andesite" => STONE,
+            "minecraft:diorite" => QUARTZ,
+            "minecraft:diorite_wall" => QUARTZ,
+            "minecraft:ice" => ICE,
+            "minecraft:packed_ice" => ICE,
+            "minecraft:blue_ice" => ICE,
+            "minecraft:cherry_leaves" => COLOR_PINK,
+            "minecraft:cherry_log" => TERRACOTTA_WHITE,
+            "minecraft:calcite" => TERRACOTTA_WHITE,
+            "minecraft:dirt_path" => DIRT,
+            "minecraft:chest" => WOOD,
+            "minecraft:mycelium" => COLOR_PURPLE,
+            "minecraft:red_sand" => COLOR_ORANGE,
+            "minecraft:podzol" => PODZOL,
+            "minecraft:mossy_cobblestone" => STONE,
+            "minecraft:coarse_dirt" => DIRT,
+            "minecraft:campfire" => PODZOL,
+            "minecraft:mangrove_roots" => PODZOL,
+            "minecraft:muddy_mangrove_roots" => PODZOL,
+            "minecraft:granite" => DIRT,
+            "minecraft:coal_ore" => STONE,
+            "minecraft:iron_ore" => STONE,
+            "minecraft:copper_ore" => STONE,
+            "minecraft:emerald_ore" => STONE,
+            "minecraft:farmland" => DIRT,
+            "minecraft:pointed_dripstone" => TERRACOTTA_BROWN,
+            "minecraft:dripstone_block" => TERRACOTTA_BROWN,
+            "minecraft:lava" => FIRE,
+            "minecraft:stone_slab" => STONE,
+            "minecraft:rooted_dirt" => DIRT,
+            "minecraft:clay" => CLAY,
+            "minecraft:sea_pickle" => COLOR_GREEN,
+            "minecraft:polished_granite" => DIRT,
+            "minecraft:red_sandstone" => COLOR_ORANGE,
+            "minecraft:smooth_stone" => STONE,
+            "minecraft:smooth_stone_slab" => STONE,
+            "minecraft:suspicious_gravel" => STONE,
+            "minecraft:sandstone" => SAND,
+            "minecraft:smooth_sandstone" => SAND,
+            "minecraft:smooth_sandstone_stairs" => SAND,
+            "minecraft:smooth_sandstone_slab" => SAND,
+            "minecraft:cut_sandstone" => SAND,
+            "minecraft:sandstone_slab" => SAND,
+            "minecraft:sandstone_stairs" => SAND,
+            "minecraft:sandstone_wall" => SAND,
+            "minecraft:grindstone" => METAL,
+            "minecraft:furnace" => STONE,
+            "minecraft:stonecutter" => STONE,
+            "minecraft:bamboo" => COLOR_YELLOW,
+            // Saplings and leaves before woods
+            b if b.ends_with("sapling") => PLANT,
+            b if b.ends_with("leaves") => PLANT,
+            // All wood types
+            b if b.contains("dark_oak") => COLOR_BROWN,
+            b if b.contains("oak") => WOOD,
+            b if b.contains("acacia") => COLOR_ORANGE,
+            b if b.contains("birch") => SAND,
+            b if b.contains("spruce") => PODZOL,
+            b if b.contains("mangrove") => COLOR_RED,
+            b if b.contains("jungle") => DIRT,
+            b if b.contains("stone_brick") => STONE,
+            b if b.contains("cobblestone") => STONE,
+            b if b.contains("copper") => COLOR_ORANGE,
+            // Banners before colors
+            b if b.ends_with("banner") => WOOD,
+            b if b.contains("white") => SNOW,
+            b if b.contains("yellow") => COLOR_YELLOW,
+            b if b.contains("red") => COLOR_RED,
+            b if b.contains("coral") => WATER,
+            b => {
+                bevy::log::info!("unknown map color for: {b}");
+                return None;
             }
-            b if b.contains("stone")
-                || b.contains("andesite")
-                || b.contains("ore")
-                || b.contains("gravel") =>
-            {
-                (112, 112, 112)
-            }
-            b if b.contains("water") || b.contains("seagrass") || b.contains("kelp") => {
-                (64, 64, 255)
-            }
-            b if b.contains("oak") || b.contains("chest") => (143, 119, 72),
-            b if b.contains("diorite") || b.contains("quartz") => (255, 252, 245),
-            b if b.contains("acacia")
-                || (b.contains("red") && b.contains("sand"))
-                || b.contains("copper") =>
-            {
-                (216, 127, 51)
-            }
-            b if b.contains("mycelium") || b.contains("amethyst") || b.contains("chorus") => {
-                (127, 63, 178)
-            }
-            b if b.contains("podzol") || b.contains("spruce") || b.contains("mangrove") => {
-                (129, 86, 49)
-            }
-            b if b.contains("bamboo") => (229, 229, 51),
-            b if b.contains("calcite") || b.contains("cherry") => (209, 177, 161),
-            _ => return None,
         })
     }
 }

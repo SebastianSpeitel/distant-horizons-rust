@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use anyhow::Context;
 use duckdb::Row;
 
@@ -13,13 +11,18 @@ pub mod world_gen_step;
 use columns::Columns;
 use pos::Pos;
 
-use crate::compression::{Compressed, Compression};
+use crate::{
+    compression::{Compressed, Compression},
+    repo::Query,
+};
 
 #[derive(Debug)]
+#[cfg_attr(feature = "bevy", derive(bevy::prelude::Component))]
+#[cfg_attr(feature = "bevy", require(bevy::prelude::Transform))]
 pub struct Section<'a> {
     pub pos: Pos,
     // levelMinY
-    min_y: i32,
+    pub min_y: i32,
     // dataChecksum
     checksum: i32,
     // compressedDataByteArray
@@ -44,7 +47,7 @@ pub struct Section<'a> {
     created: i64,
 }
 
-impl<'a> Section<'a> {
+impl Section<'_> {
     pub const WIDTH: usize = 64;
 
     #[inline]
@@ -82,73 +85,51 @@ impl<'a> Section<'a> {
         Self::get_all(&conn)
     }
 
-    #[inline]
-    pub fn get_all(conn: &duckdb::Connection) -> Result<Vec<Self>, duckdb::Error> {
-        const SQL: &str = "SELECT * FROM FullData";
-        let mut stmt = conn.prepare_cached(SQL)?;
+    pub fn get_all_with_detail_level_from_db(
+        db_path: impl AsRef<str>,
+        detail_level: crate::DetailLevel,
+    ) -> Result<Vec<Self>, duckdb::Error> {
+        use crate::repo::Repo;
 
-        let mut rows = stmt.query([])?;
+        let conn = duckdb::Connection::open_in_memory()?;
+        conn.execute("INSTALL SQLITE", [])?;
+        conn.execute(
+            &format!(
+                "ATTACH '{}' AS dh (TYPE SQLITE, READONLY)",
+                db_path.as_ref()
+            ),
+            [],
+        )?;
+        conn.execute("SET sqlite_all_varchar=true", [])?;
+        conn.execute("USE dh", [])?;
 
-        let Some(first) = rows.next()? else {
-            return Ok(Vec::new());
-        };
-        let mut all = Vec::with_capacity(first.get("count").unwrap_or_default());
-        all.push(Section::from_row(first)?.into_owned());
+        struct Q;
 
-        while let Some(row) = rows.next()? {
-            all.push(Section::from_row(row)?.into_owned());
+        impl Query<crate::DetailLevel> for Q {
+            fn r#where(&self) -> &str {
+                "DetailLevel = ?"
+            }
+
+            fn bind_params(&self, stmt: &mut duckdb::Statement, params: crate::DetailLevel) {
+                stmt.raw_bind_parameter(1, params as i32).unwrap();
+            }
         }
 
-        Ok(all)
+        Self::select_vec_with(
+            &conn,
+            &Q,
+            detail_level - Pos::SECTION_MINIMUM_DETAIL_LEVEL,
+            |s| s.into_owned(),
+        )
     }
 
-    /// https://gitlab.com/distant-horizons-team/distant-horizons-core/-/blob/main/core/src/main/java/com/seibel/distanthorizons/core/sql/repo/FullDataSourceV2Repo.java
     #[inline]
-    pub fn from_row(row: &'a Row) -> Result<Self, duckdb::Error> {
-        let mut detail_level = row.get("DetailLevel")?;
-        detail_level = detail_level + Pos::SECTION_MINIMUM_DETAIL_LEVEL;
-        let x: i32 = row.get("PosX")?;
-        let z: i32 = row.get("PosZ")?;
+    pub fn get_all(conn: &duckdb::Connection) -> Result<Vec<Self>, duckdb::Error> {
+        use crate::repo::{All, Repo};
 
-        let min_y: i32 = row.get("MinY")?;
-        let checksum: i32 = row.get("DataChecksum")?;
+        let q = All.ordered("(cast(PosX as INTEGER) ** 2 + cast(PosZ as INTEGER) ** 2) DESC");
 
-        let format_version: u8 = row.get("DataFormatVersion")?;
-        let compression = row.get("CompressionMode")?;
-
-        let apply_to_parent: Option<bool> = row.get("ApplyToParent").unwrap_or_default();
-        let apply_to_children: Option<bool> = row.get("ApplyToChildren").unwrap_or_default();
-
-        let last_modified: i64 = row.get("LastModifiedUnixDateTime")?;
-        let created: i64 = row.get("CreatedUnixDateTime")?;
-
-        let data = row.get_ref("Data")?;
-        let data: Compressed<_> = data.try_into()?;
-        let world_gen_step: Compressed<_> = row.get_ref("ColumnGenerationStep")?.try_into()?;
-        let world_compression: Compressed<_> =
-            row.get_ref("ColumnWorldCompressionMode")?.try_into()?;
-        let mapping: Compressed<_> = row.get_ref("Mapping")?.try_into()?;
-
-        let data = data.with_compressor(compression);
-        let world_gen_step = world_gen_step.with_compressor(compression);
-        let world_compression = world_compression.with_compressor(compression);
-        let mapping = mapping.with_compressor(compression);
-
-        Ok(Self {
-            pos: Pos { detail_level, x, z },
-            min_y,
-            checksum,
-            data,
-            world_gen_step,
-            world_compression,
-            mapping,
-            format_version,
-            compression,
-            apply_to_parent,
-            apply_to_children,
-            last_modified,
-            created,
-        })
+        Self::select_vec(conn, &q, |s| s.into_owned())
     }
 
     #[inline]
@@ -169,6 +150,22 @@ impl<'a> Section<'a> {
             last_modified: self.last_modified,
             created: self.created,
         }
+    }
+
+    #[inline]
+    pub const fn is_compressed(&self) -> bool {
+        self.data.is_compressed()
+            || self.world_gen_step.is_compressed()
+            || self.world_compression.is_compressed()
+            || self.mapping.is_compressed()
+    }
+
+    #[inline]
+    pub const fn is_decompressed(&self) -> bool {
+        self.data.is_decompressed()
+            && self.world_gen_step.is_decompressed()
+            && self.world_compression.is_decompressed()
+            && self.mapping.is_decompressed()
     }
 
     #[inline]
@@ -200,10 +197,10 @@ impl<'a> Section<'a> {
     }
 }
 
-impl Section<'_> {
-    pub fn insert_into(&self, conn: &duckdb::Connection) -> Result<(), duckdb::Error> {
-        const SQL: &str = "
-            INSERT INTO FullData BY NAME (
+impl crate::repo::Repo for Section<'_> {
+    const TABLE: &'static str = "FullData";
+    const INSERT: &'static str = "
+            BY NAME (
                 SELECT
                     ? AS DetailLevel,
                     ? AS PosX,
@@ -223,24 +220,93 @@ impl Section<'_> {
                     -- ? AS ApplyToChildren,
             );
         ";
-        let mut stmt = conn.prepare_cached(SQL)?;
 
-        stmt.execute(duckdb::params![
-            self.pos.detail_level - Pos::SECTION_MINIMUM_DETAIL_LEVEL,
-            self.pos.x,
-            self.pos.z,
-            self.min_y,
-            self.checksum,
-            self.data,
-            self.world_gen_step,
-            self.world_compression,
-            self.mapping,
-            self.format_version,
-            self.compression,
-            self.apply_to_parent,
-            self.last_modified,
-            self.created,
-        ])?;
+    type Element<'r> = Section<'r>;
+
+    /// <https://gitlab.com/distant-horizons-team/distant-horizons-core/-/blob/main/core/src/main/java/com/seibel/distanthorizons/core/sql/repo/FullDataSourceV2Repo.java>
+    #[inline]
+    fn from_row<'r>(row: &'r Row) -> duckdb::Result<Self::Element<'r>> {
+        let mut detail_level = row.get("DetailLevel")?;
+        detail_level = detail_level + Pos::SECTION_MINIMUM_DETAIL_LEVEL;
+        let x: i32 = row.get("PosX")?;
+        let z: i32 = row.get("PosZ")?;
+
+        let min_y: i32 = row.get("MinY")?;
+        let checksum: i32 = row.get("DataChecksum")?;
+
+        let format_version: u8 = row.get("DataFormatVersion")?;
+        let compression = row.get("CompressionMode")?;
+
+        let apply_to_parent: Option<bool> = row.get("ApplyToParent").unwrap_or_default();
+        let apply_to_children: Option<bool> = row.get("ApplyToChildren").unwrap_or_default();
+
+        let last_modified: i64 = row.get("LastModifiedUnixDateTime")?;
+        let created: i64 = row.get("CreatedUnixDateTime")?;
+
+        let data = row.get_ref("Data")?;
+        let data: Compressed<_> = data.try_into()?;
+        let world_gen_step: Compressed<_> = row.get_ref("ColumnGenerationStep")?.try_into()?;
+        let world_compression: Compressed<_> =
+            row.get_ref("ColumnWorldCompressionMode")?.try_into()?;
+        let mapping: Compressed<_> = row.get_ref("Mapping")?.try_into()?;
+
+        let data = data.with_compressor(compression);
+        let world_gen_step = world_gen_step.with_compressor(compression);
+        let world_compression = world_compression.with_compressor(compression);
+        let mapping = mapping.with_compressor(compression);
+
+        Ok(Section {
+            pos: Pos { detail_level, x, z },
+            min_y,
+            checksum,
+            data,
+            world_gen_step,
+            world_compression,
+            mapping,
+            format_version,
+            compression,
+            apply_to_parent,
+            apply_to_children,
+            last_modified,
+            created,
+        })
+    }
+
+    #[inline]
+    fn bind_insert(stmt: &mut duckdb::Statement, sec: Self::Element<'_>) -> duckdb::Result<()> {
+        macro_rules! bind {
+            (@param $i:ident = $p:expr) => {
+                $i += 1;
+                stmt.raw_bind_parameter($i, $p)?;
+            };
+            ($($p:expr$(,)?)*) => {
+                {
+                    let mut col_index = 0;
+                    $(
+                        bind!(@param col_index = $p);
+                    )*
+                    debug_assert_eq!(stmt.parameter_count(), col_index);
+                }
+            };
+        }
+
+        bind![
+            sec.pos.detail_level - Pos::SECTION_MINIMUM_DETAIL_LEVEL,
+            sec.pos.x,
+            sec.pos.z,
+            sec.min_y,
+            sec.checksum,
+            sec.data,
+            sec.world_gen_step,
+            sec.world_compression,
+            sec.mapping,
+            sec.format_version,
+            sec.compression,
+            sec.apply_to_parent,
+            sec.last_modified,
+            sec.created
+        ];
+
         Ok(())
     }
 }
