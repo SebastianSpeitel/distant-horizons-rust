@@ -25,7 +25,7 @@ Source: https://gitlab.com/distant-horizons-team/distant-horizons
 ### Controls
 
 - <kbd>L</kbd>: load the map
-- <kbd>W</kbd><kbdA</kbd><kbdS</kbd><kbdD</kbd>: move around
+- <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>: move around
 - <kbd>+</kbd>/<kbd>-</kbd>: zoom
 - <kbd>ESC</kbd>/<kbd>Q</kbd>: exit
 
