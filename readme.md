@@ -24,7 +24,7 @@ Source: https://gitlab.com/distant-horizons-team/distant-horizons
 
 ### Controls
 
-- <kbd>L</kbd>: load the map
+- <kbd>L</kbd>: load the map (path read from DH_PATH env variable)
 - <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>: move around
 - <kbd>+</kbd>/<kbd>-</kbd>: zoom
 - <kbd>ESC</kbd>/<kbd>Q</kbd>: exit
