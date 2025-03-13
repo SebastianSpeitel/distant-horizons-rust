@@ -25,13 +25,14 @@ Source: https://gitlab.com/distant-horizons-team/distant-horizons
 ### Controls
 
 - <kbd>L</kbd>: load the map
-- <kbd>WASD</kbd>: move around
+- <kbd>W</kbd><kbdA</kbd><kbdS</kbd><kbdD</kbd>: move around
 - <kbd>+</kbd>/<kbd>-</kbd>: zoom
 - <kbd>ESC</kbd>/<kbd>Q</kbd>: exit
 
 ## Example
 
-<img src="docs/example.png" alt="Top down view of a large minecraft map, where undiscovered areas are still gray">
+<img src="docs/example.png" alt="Top down view of a large minecraft map, where undiscovered areas are still gray"></img>
+
 We're playing with [JJThunder To The Max](https://modrinth.com/datapack/jjthunder-to-the-max) which amplifies the terrain a lot and without DH we could only see slivers of our world. This screenshot is more than 10.000 blocks wide and still only contains a beach area, the obvious river and the beginning of a mountain range.
 The detail level is set to 8 (`DetailLevel::Chunk16`, a section is 16 chunks wide), which makes each pixel 4x4 blocks.
 
