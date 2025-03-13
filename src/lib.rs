@@ -1,3 +1,4 @@
+pub mod block;
 mod compression;
 mod detail_level;
 #[cfg(feature = "gui")]

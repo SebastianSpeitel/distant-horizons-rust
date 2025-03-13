@@ -1,7 +1,8 @@
 /// https://gitlab.com/distant-horizons-team/distant-horizons-core/-/blob/main/core/src/main/java/com/seibel/distanthorizons/core/pos/DhSectionPos.java
 use crate::DetailLevel;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "bevy", derive(bevy::prelude::Component))]
 pub struct Pos {
     pub detail_level: DetailLevel,
     pub x: i32,

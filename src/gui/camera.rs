@@ -60,7 +60,7 @@ pub fn move_camera(
 
     let accel = direction.normalize_or_zero() * CAMERA_SPEED;
 
-    *cam_speed += accel * 0.5 * time.delta_secs();
+    *cam_speed += accel * 0.3 * time.delta_secs();
     *cam_speed = cam_speed.clamp(accel.min(Vec2::ZERO), accel.max(Vec2::ZERO));
 
     let target = camera.translation + cam_speed.extend(0.);

@@ -2,37 +2,23 @@ use bevy::prelude::*;
 
 use crate::Section;
 
-#[derive(Debug, Component)]
+#[derive(Debug, Clone, Copy, Default, Component)]
 pub struct Decompressed;
 
 const PURPLE: (u8, u8, u8) = (255, 0, 255);
 
+#[derive(Debug, Clone, Copy, Default, Component)]
+pub struct Visible;
+
 #[inline]
 pub fn update(
     mut commands: Commands,
-    mut sections: Query<(Entity, &Section<'static>), Changed<Section<'static>>>,
+    sections: Query<(Entity, &Section<'static>), Changed<Section<'static>>>,
 ) {
-    for (entity, section) in sections.iter_mut() {
-        bevy::log::debug!("Updating section {entity}");
-        let mut entity = commands.entity(entity);
-
-        // let wire_color = if section.is_decompressed() {
-        //     Wireframe2dColor {
-        //         color: Color::linear_rgb(0.0, 1.0, 0.0),
-        //     }
-        // } else {
-        //     Wireframe2dColor {
-        //         color: Color::linear_rgb(1.0, 0.0, 0.0),
-        //     }
-        // };
-
-        entity.insert((
-            section.pos.detail_level,
-            section.compression(),
-            // unit_rect.get(),
-            // Wireframe2d,
-            // wire_color,
-        ));
+    for (entity, section) in sections.iter() {
+        if !section.is_decompressed() {
+            commands.entity(entity).remove::<Decompressed>();
+        }
     }
 }
 
@@ -43,6 +29,10 @@ pub fn decompress(
 ) {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::time::Instant;
+    if sections.is_empty() {
+        return;
+    }
+
     let start = Instant::now();
 
     let stopped = AtomicBool::new(false);
@@ -51,7 +41,7 @@ pub fn decompress(
         if stopped.load(Ordering::Relaxed) {
             return;
         }
-        if start.elapsed().as_millis() > 10 {
+        if start.elapsed().as_millis() > 1000 / 65 {
             stopped.store(true, Ordering::Relaxed);
             return;
         }
@@ -68,59 +58,156 @@ pub fn decompress(
 
 pub fn texturing(
     mut commands: Commands,
-    sections: Query<(Entity, &Section<'static>), (Without<Sprite>, With<Decompressed>)>,
+    sections: Query<
+        (Entity, &Section<'static>),
+        (
+            Or<(Without<Sprite>, Changed<Section<'static>>)>,
+            With<Decompressed>,
+        ),
+    >,
     mut assets: ResMut<Assets<Image>>,
 ) {
-    for (e, section) in sections.iter().take(32) {
-        bevy::log::debug!("Texturing section {e}");
-        let img = build_section_image(section);
-        let handle = assets.add(img);
-        let mut sprite = Sprite::from_image(handle);
-        // sprite.custom_size.replace(Vec2 {
-        //     x: Section::WIDTH as f32,
-        //     y: Section::WIDTH as f32,
-        // });
-        sprite.custom_size.replace(Vec2::new(1., 1.));
-        let mut entity = commands.entity(e);
-        entity.insert(sprite);
-        // entity.remove::<Mesh2d>();
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::mpsc::channel;
+    use std::time::Instant;
+
+    if sections.is_empty() {
+        return;
     }
+
+    let start = Instant::now();
+
+    let stopped = AtomicBool::new(false);
+
+    let (tx, rx) = channel();
+
+    sections.par_iter().for_each(|(e, section)| {
+        if stopped.load(Ordering::Relaxed) {
+            return;
+        }
+        if start.elapsed().as_millis() > 10 {
+            stopped.store(true, Ordering::Relaxed);
+            return;
+        }
+        bevy::log::trace!("Texturing section {e}");
+        let Some(img) = build_section_image(section) else {
+            return;
+        };
+        if tx.send((e, img)).is_err() {
+            stopped.store(true, Ordering::Relaxed);
+        }
+    });
+    drop(tx);
+
+    let sprites = rx
+        .into_iter()
+        .map(|(e, img)| {
+            let handle = assets.add(img);
+            let sprite = Sprite::from_image(handle);
+            (e, sprite)
+        })
+        .collect::<Vec<_>>();
+
+    commands.insert_batch(sprites);
+
+    // for (e, img) in rx {
+    //     let handle = assets.add(img);
+    //     let mut sprite = Sprite::from_image(handle);
+    //     sprite.custom_size.replace(Vec2::new(1., 1.));
+    //     let mut entity = commands.entity(e);
+    //     entity.insert(sprite);
+    // }
 }
 
-fn build_section_image(section: &Section) -> Image {
-    use bevy::render::render_resource::Extent3d;
-    let extent = Extent3d {
-        width: Section::WIDTH as u32,
-        height: Section::WIDTH as u32,
-        ..Default::default()
-    };
-    let mut img = Image::transparent();
-    img.resize(extent);
+fn build_section_image(section: &Section) -> Option<Image> {
+    // use smol_str::SmolStr;
+    // use std::collections::BTreeMap;
+    // use std::sync::Mutex;
+    // static BLOCK_CACHE: Mutex<BTreeMap<SmolStr, CachedBlock<SmolStr>>> =
+    //     Mutex::new(BTreeMap::new());
 
-    let cols = section.column_data().unwrap();
-    let mapping = section.mapping().unwrap();
+    use crate::block::Block;
+    use bevy::render::render_resource::Extent3d;
+    use bevy::render::render_resource::TextureDescriptor;
+    let mut img = Image {
+        data: vec![0; Section::WIDTH * Section::WIDTH * 4],
+        texture_descriptor: TextureDescriptor {
+            size: Extent3d {
+                width: Section::WIDTH as u32,
+                height: Section::WIDTH as u32,
+                depth_or_array_layers: 1,
+            },
+            ..Image::transparent().texture_descriptor
+        },
+        ..Image::transparent()
+    };
+
+    let cols = section.column_data()?;
+    let mapping = section.mapping()?;
+    let mut is_nether = None;
+    // let mut cache = BLOCK_CACHE.lock().unwrap();
+
+    // let mut cache = BTreeMap::<SmolStr, CachedBlock<SmolStr>>::new();
 
     for dz in 0..Section::WIDTH as u32 {
         for dx in 0..Section::WIDTH as u32 {
             let col = cols[(dz as usize, dx as usize)].as_ref();
             let slices = col.into_iter().map(|p| {
-                let block = &mapping[p];
+                let entry = &mapping[p];
+
+                // let entry = cache
+                //     .entry(entry.block.clone())
+                //     .or_insert_with(|| CachedBlock::new(entry.block.clone()));
+
+                // // if let Some(block) = cache.get(entry.block.as_str()) {
+                // //     return (*p, block.to_owned());
+                // // }
+
+                // // let block = CachedBlock::new(entry.block.clone());
+                // // cache.insert(entry.block.clone(), block.to_owned());
+
+                let block = entry.to_owned();
+
                 (*p, block)
             });
 
+            let mut above_nether_roof = true;
+            let mut in_or_above_nether_roof = true;
             for (_dp, b) in slices {
                 if b.is_transparent() {
+                    in_or_above_nether_roof = above_nether_roof;
+                    continue;
+                }
+                above_nether_roof = false;
+
+                let is_nether = is_nether.get_or_insert_with(|| b.in_nether());
+
+                if *is_nether && (above_nether_roof || in_or_above_nether_roof) {
                     continue;
                 }
 
                 let (r, g, b) = b.map_color().unwrap_or(PURPLE);
-                let material = Color::srgb_u8(r, g, b);
+                // let color = Color::srgb_u8(r, g, b);
 
-                img.set_color_at(dx, dz, material).unwrap();
+                let index = (dz * Section::WIDTH as u32 + dx) as usize;
+                let offset = index * 4;
+                // let bytes = &mut img.data[offset..offset + 4];
+
+                // bytes[0] = r;
+                // bytes[1] = g;
+                // bytes[2] = b;
+                // bytes[3] = u8::MAX;
+
+                img.data[offset + 0] = r;
+                img.data[offset + 1] = g;
+                img.data[offset + 2] = b;
+                img.data[offset + 3] = u8::MAX;
+
+                // img.set_color_at(dx, dz, color).unwrap();
                 break;
             }
         }
     }
 
-    img
+    Some(img)
 }

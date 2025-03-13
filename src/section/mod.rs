@@ -16,7 +16,7 @@ use crate::{
     repo::Query,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[cfg_attr(feature = "bevy", derive(bevy::prelude::Component))]
 #[cfg_attr(feature = "bevy", require(bevy::prelude::Transform))]
 pub struct Section<'a> {
@@ -58,6 +58,12 @@ impl Section<'_> {
 
     #[inline]
     #[must_use]
+    pub const fn last_modified(&self) -> i64 {
+        self.last_modified
+    }
+
+    #[inline]
+    #[must_use]
     pub fn column_data(&self) -> Option<&Columns<Box<[data::DataPoint]>>> {
         self.data.as_ref().map(|data| data.as_ref())
     }
@@ -85,40 +91,37 @@ impl Section<'_> {
         Self::get_all(&conn)
     }
 
-    pub fn get_all_with_detail_level_from_db(
-        db_path: impl AsRef<str>,
+    pub fn get_all_with_detail_level_modified_after(
+        conn: &duckdb::Connection,
         detail_level: crate::DetailLevel,
+        last_modified: i64,
     ) -> Result<Vec<Self>, duckdb::Error> {
         use crate::repo::Repo;
 
-        let conn = duckdb::Connection::open_in_memory()?;
-        conn.execute("INSTALL SQLITE", [])?;
-        conn.execute(
-            &format!(
-                "ATTACH '{}' AS dh (TYPE SQLITE, READONLY)",
-                db_path.as_ref()
-            ),
-            [],
-        )?;
-        conn.execute("SET sqlite_all_varchar=true", [])?;
-        conn.execute("USE dh", [])?;
-
         struct Q;
 
-        impl Query<crate::DetailLevel> for Q {
+        impl Query<(crate::DetailLevel, i64)> for Q {
             fn r#where(&self) -> &str {
-                "DetailLevel = ?"
+                "DetailLevel = ? AND CAST(lastModifiedUnixDateTime AS BIGINT) > ?"
             }
 
-            fn bind_params(&self, stmt: &mut duckdb::Statement, params: crate::DetailLevel) {
-                stmt.raw_bind_parameter(1, params as i32).unwrap();
+            fn bind_params(
+                &self,
+                stmt: &mut duckdb::Statement,
+                (detail_level, last_modified): (crate::DetailLevel, i64),
+            ) {
+                stmt.raw_bind_parameter(1, detail_level).unwrap();
+                stmt.raw_bind_parameter(2, last_modified).unwrap();
             }
         }
 
         Self::select_vec_with(
             &conn,
             &Q,
-            detail_level - Pos::SECTION_MINIMUM_DETAIL_LEVEL,
+            (
+                detail_level - Pos::SECTION_MINIMUM_DETAIL_LEVEL,
+                last_modified,
+            ),
             |s| s.into_owned(),
         )
     }
@@ -194,6 +197,12 @@ impl Section<'_> {
     #[must_use]
     pub const fn block_width(&self) -> i32 {
         self.pos.detail_level.block_width()
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn width(&self) -> i32 {
+        self.block_width() >> 6
     }
 }
 

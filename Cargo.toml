@@ -13,6 +13,7 @@ duckdb_bundled = ["duckdb/bundled"]
 anyhow = { version = "1.0" }
 duckdb = { version = "1.2", default-features = false }
 simd_cesu8 = "1.0"
+smol_str = "0.3"
 tracing = { version = "0.1", default-features = false }
 tracing-subscriber = { version = "0.3", optional = true }
 xz2 = "0.1"
@@ -26,7 +27,7 @@ features = [
     "bevy_render",
     "bevy_sprite",
     "bevy_winit",
-    "bevy_ui",
+    # "bevy_ui",
     "asset_processor",
     "multi_threaded",
     # "dynamic_linking",
