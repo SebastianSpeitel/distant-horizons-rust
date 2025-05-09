@@ -44,6 +44,7 @@ const CRIMSON_STEM: Col = (148, 63, 97);
 const WARPED_NYLIUM: Col = (22, 126, 134);
 const WARPED_STEM: Col = (58, 142, 140);
 const WARPED_WART_BLOCK: Col = (20, 180, 133);
+const DIAMOND: Col = (92, 219, 213);
 
 /// <https://minecraft.wiki/w/Map_item_format#Color_table>
 #[inline]
@@ -142,6 +143,7 @@ pub fn get(identifier: impl AsRef<str>) -> Option<(u8, u8, u8)> {
         "minecraft:andesite" => STONE,
         "minecraft:diorite" => QUARTZ,
         "minecraft:diorite_wall" => QUARTZ,
+        "minecraft:smooth_quartz_slab" => QUARTZ,
         "minecraft:ice" => ICE,
         "minecraft:packed_ice" => ICE,
         "minecraft:blue_ice" => ICE,
@@ -204,6 +206,13 @@ pub fn get(identifier: impl AsRef<str>) -> Option<(u8, u8, u8)> {
         "minecraft:dragon_egg" => COLOR_BLACK,
         "minecraft:basalt" => COLOR_BLACK,
         "minecraft:blackstone" => COLOR_BLACK,
+        "minecraft:blackstone_wall" => COLOR_BLACK,
+        "minecraft:blackstone_slab" => COLOR_BLACK,
+        "minecraft:blackstone_stairs" => COLOR_BLACK,
+        "minecraft:chiseled_polished_blackstone" => COLOR_BLACK,
+        "minecraft:polished_blackstone_slab" => COLOR_BLACK,
+        "minecraft:gilded_blackstone" => COLOR_BLACK,
+        "minecraft:polished_basalt" => COLOR_BLACK,
         "minecraft:soul_sand" => COLOR_BROWN,
         "minecraft:soul_soil" => COLOR_BROWN,
         "minecraft:glowstone" => SAND,
@@ -225,6 +234,8 @@ pub fn get(identifier: impl AsRef<str>) -> Option<(u8, u8, u8)> {
         "minecraft:nether_sprouts" => COLOR_CYAN,
         "minecraft:crimson_fungus" => NETHER,
         "minecraft:crimson_stem" => CRIMSON_STEM,
+        "minecraft:crimson_planks" => CRIMSON_STEM,
+        "minecraft:crimson_slab" => CRIMSON_STEM,
         "minecraft:shroomlight" => COLOR_RED,
         "minecraft:nether_bricks" => NETHER,
         "minecraft:nether_brick_fence" => NETHER,
@@ -234,6 +245,13 @@ pub fn get(identifier: impl AsRef<str>) -> Option<(u8, u8, u8)> {
         "minecraft:lightning_rod" => COLOR_ORANGE,
         "minecraft:decorated_pot" => TERRACOTTA_RED,
         "minecraft:iron_block" => METAL,
+        "minecraft:chiseled_sandstone" => SAND,
+        "minecraft:beacon" => DIAMOND,
+        "minecraft:barrel" => WOOD,
+        "minecraft:diorite_stairs" => QUARTZ,
+        "minecraft:sea_lantern" => QUARTZ,
+        "minecraft:diamond_ore" => STONE,
+        "minecraft:cyan_terracotta" => TERRACOTTA_CYAN,
         // Saplings and leaves before woods
         b if b.ends_with("sapling") => PLANT,
         b if b.ends_with("leaves") => PLANT,
