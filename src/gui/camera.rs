@@ -1,3 +1,5 @@
+use std::ops::DerefMut;
+
 use bevy::prelude::*;
 
 const CAMERA_SPEED: f32 = 5000.;
@@ -10,11 +12,11 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app.world_mut().spawn((
             Camera2d,
-            OrthographicProjection {
+            Projection::Orthographic(OrthographicProjection {
                 far: 10000.,
                 scale: 128.0,
                 ..OrthographicProjection::default_2d()
-            },
+            }),
             Camera {
                 hdr: true,
                 ..Default::default()
@@ -75,25 +77,27 @@ pub fn move_camera(
 }
 
 fn zoom_camera(
-    mut camera: Single<&mut OrthographicProjection, With<Camera2d>>,
+    mut camera: Single<&mut Projection, With<Camera2d>>,
     mut scroll: EventReader<bevy::input::mouse::MouseWheel>,
     kb_input: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    if kb_input.pressed(KeyCode::KeyR) {
-        camera.scale = 1.;
-        return;
-    }
+    if let Projection::Orthographic(camera) = &mut **camera {
+        if kb_input.pressed(KeyCode::KeyR) {
+            camera.scale = 1.;
+            return;
+        }
 
-    // for event in scroll.read() {
-    //     camera.scale *= event.y * time.delta_secs() * 0.01;
-    // }
+        // for event in scroll.read() {
+        //     camera.scale *= event.y * time.delta_secs() * 0.01;
+        // }
 
-    if kb_input.pressed(KeyCode::NumpadAdd) {
-        camera.scale *= 0.5f32.powf(time.delta_secs());
-    }
+        if kb_input.pressed(KeyCode::NumpadAdd) || kb_input.pressed(KeyCode::Equal) {
+            camera.scale *= 0.5f32.powf(time.delta_secs());
+        }
 
-    if kb_input.pressed(KeyCode::NumpadSubtract) {
-        camera.scale *= 2.0f32.powf(time.delta_secs());
-    }
+        if kb_input.pressed(KeyCode::NumpadSubtract) || kb_input.pressed(KeyCode::Minus) {
+            camera.scale *= 2.0f32.powf(time.delta_secs());
+        }
+    };
 }

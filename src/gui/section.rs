@@ -130,7 +130,7 @@ fn build_section_image(section: &Section) -> Option<Image> {
     use bevy::render::render_resource::Extent3d;
     use bevy::render::render_resource::TextureDescriptor;
     let mut img = Image {
-        data: vec![0; Section::WIDTH * Section::WIDTH * 4],
+        data: Some(vec![0; Section::WIDTH * Section::WIDTH * 4]),
         texture_descriptor: TextureDescriptor {
             size: Extent3d {
                 width: Section::WIDTH as u32,
@@ -141,6 +141,7 @@ fn build_section_image(section: &Section) -> Option<Image> {
         },
         ..Image::transparent()
     };
+    let img_data = img.data.as_mut()?;
 
     let cols = section.column_data()?;
     let mapping = section.mapping()?;
@@ -198,10 +199,10 @@ fn build_section_image(section: &Section) -> Option<Image> {
                 // bytes[2] = b;
                 // bytes[3] = u8::MAX;
 
-                img.data[offset + 0] = r;
-                img.data[offset + 1] = g;
-                img.data[offset + 2] = b;
-                img.data[offset + 3] = u8::MAX;
+                img_data[offset + 0] = r;
+                img_data[offset + 1] = g;
+                img_data[offset + 2] = b;
+                img_data[offset + 3] = u8::MAX;
 
                 // img.set_color_at(dx, dz, color).unwrap();
                 break;
