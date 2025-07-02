@@ -252,6 +252,8 @@ pub fn get(identifier: impl AsRef<str>) -> Option<(u8, u8, u8)> {
         "minecraft:sea_lantern" => QUARTZ,
         "minecraft:diamond_ore" => STONE,
         "minecraft:cyan_terracotta" => TERRACOTTA_CYAN,
+        "minecraft:granite_wall" => DIRT,
+        "minecraft:green_carpet" => COLOR_GREEN,
         // Saplings and leaves before woods
         b if b.ends_with("sapling") => PLANT,
         b if b.ends_with("leaves") => PLANT,
