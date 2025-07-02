@@ -19,10 +19,11 @@ tracing-subscriber = { version = "0.3", optional = true }
 xz2 = "0.1"
 
 [dependencies.bevy]
-version = "0.15"
+version = "0.16"
 optional = true
 default-features = false
 features = [
+    "bevy_log",
     "bevy_asset",
     "bevy_render",
     "bevy_sprite",
